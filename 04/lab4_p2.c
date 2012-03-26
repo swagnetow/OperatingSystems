@@ -7,6 +7,8 @@ void add_to_global();
 
 /* Global variable to be added to using threads. */
 int global = 0;
+
+/* Global mutex lock. */
 pthread_mutex_t lock;
 
 int main() {
@@ -15,7 +17,8 @@ int main() {
     pthread_t tid[10];
     void *arg;
 
-    printf("Create threads without sleep().\n");
+    /* printf("Create threads without sleep().\n"); */
+    printf("Create threads with sleep().\n");
 
     return_value = pthread_mutex_init(&lock, NULL);
 
@@ -33,6 +36,7 @@ int main() {
         }
     }
 
+    /* Join threads together. */
     for(i = 1; i <= 10; i++) {
         pthread_join(tid[i], NULL);
     }
@@ -41,19 +45,25 @@ int main() {
 }
 
 void add_to_global(void* arg) {
+    /* Enter critical section. */
     pthread_mutex_lock(&lock);
+
     int local;
 
     fprintf(stderr, "Hello, I'm thread %u.\n", (unsigned int)pthread_self());
     local = global;
-    /*sleep(1);*/
+    sleep(1);
 
     fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)pthread_self());
     local += 10;
-    /*sleep(1);*/
+    sleep(1);
 
     fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)pthread_self());
     global = local;
+
+    /* Exit critical section. */
     pthread_mutex_unlock(&lock);
-    /*sleep(1);*/
+
+    /* Remainder section. */
+    sleep(1);
 }
