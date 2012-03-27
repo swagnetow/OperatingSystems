@@ -61,8 +61,8 @@ void add_to_global(void* arg) {
     fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)pthread_self());
     global = local;
 
-    /* Exit critical section. */
-    pthread_mutex_unlock(&lock);
+    /* Exit critical section. Comment this line out to create deadlock. */
+    /* pthread_mutex_unlock(&lock); */
 
     /* Remainder section. */
     sleep(1);
