@@ -1,69 +1,131 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <string.h>
+#include <signal.h>
+#include <errno.h>
 #include <sys/types.h>
 
-void add_to_global();
+void fork_without_sleep();
+void fork_with_sleep();
 
-/* Global variable to be added to using threads. */
-int global = 0;
+void catcher(int);
+void forking(int);
 
-/* Global mutex lock. */
-pthread_mutex_t lock;
-
-int main() {
-    int i;
-    int return_value;
-    pthread_t tid[10];
-    void *arg;
-
-    /* printf("Create threads without sleep().\n"); */
-    printf("Create threads with sleep().\n");
-
-    return_value = pthread_mutex_init(&lock, NULL);
-
-    if(return_value < 0) {
-        perror("Can't initialize mutex");
-        exit(-1);
-    }
-
-    for(i = 1; i <= 10; i++) {
-        return_value = pthread_create(&tid[i], NULL, (void *)add_to_global, arg);
-
-        if(return_value < 0) {
-            perror("Cannot create thread.");
-            exit(-1);
-        }
-    }
-
-    /* Join threads together. */
-    for(i = 1; i <= 10; i++) {
-        pthread_join(tid[i], NULL);
-    }
+int main(int argc, char** argv) {
+    fork_without_sleep();
+    fork_with_sleep();
 
     return 0;
 }
 
-void add_to_global(void* arg) {
-    /* Enter critical section. */
-    pthread_mutex_lock(&lock);
+void catcher(int sig) {
+    printf("Signal catcher called for signal %d.\n", sig);
+}
 
-    int local;
+void fork_without_sleep() {
+    int i;
+    int proc;
+    int result = 0;
+    int signal;
+    int sig_pid;
+    pid_t child_pid;
+    sigset_t waitset;
+    struct sigaction sigact;
 
-    fprintf(stderr, "Hello, I'm thread %u.\n", (unsigned int)pthread_self());
-    local = global;
-    sleep(1);
+    sigemptyset(&sigact.sa_mask);
+    sigact.sa_flags = 0;
+    sigact.sa_handler = catcher;
+    sigaction(SIGUSR1, &sigact, NULL);
+    sigemptyset(&waitset);
+    sigaddset(&waitset, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &waitset, NULL);
 
-    fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)pthread_self());
-    local += 10;
-    sleep(1);
+    sig_pid = getpid();
 
-    fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)pthread_self());
-    global = local;
+    printf("Part 1 without sleep():\n");
 
-    /* Exit critical section. Comment this line out to create deadlock. */
-    /* pthread_mutex_unlock(&lock); */
+    for(proc = 0; proc < 10; proc++) {
+        child_pid = fork();
 
-    /* Remainder section. */
-    sleep(1);
+        if(child_pid) {
+            break;
+        }
+    }
+
+    if(sig_pid != getpid()) {
+        result = sigwait(&waitset, &signal);
+
+        if(result == 0) {
+            printf("PID: %d, sigwait() returned for signal %d.\n", getpid(), signal);
+        }
+        else {
+            printf("sigwait() returned error number %d.\n", errno);
+            perror("sigwait() function failed.\n");
+        }
+    }
+
+    for(i = 0; i < 10; i++ ) {
+        fprintf(stderr, "Process: %d, PID: %d\n", i+1, getpid());
+    }
+
+    if(kill(child_pid, SIGUSR1) < 0) {
+        perror("Failed to kill child");
+    }
+
+    wait(child_pid);
+}
+
+void fork_with_sleep() {
+    int i;
+    int proc;
+    int result = 0;
+    int signal;
+    int sig_pid;
+    pid_t child_pid;
+    sigset_t waitset;
+    struct sigaction sigact;
+
+    sigemptyset(&sigact.sa_mask);
+    sigact.sa_flags = 0;
+    sigact.sa_handler = catcher;
+    sigaction(SIGUSR1, &sigact, NULL);
+    sigemptyset(&waitset);
+    sigaddset(&waitset, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &waitset, NULL);
+
+    sig_pid = getpid();
+
+    printf("Part 1 with sleep():\n");
+
+    for(proc = 0; proc < 10; proc++) {
+        child_pid = fork();
+
+        if(child_pid) {
+            break;
+        }
+
+        sleep(1);
+    }
+
+    if(sig_pid != getpid()) {
+        result = sigwait(&waitset, &signal);
+
+        if(result == 0) {
+            printf("PID: %d, sigwait() returned for signal %d.\n", getpid(), signal);
+        }
+        else {
+            printf("sigwait() returned error number %d.\n", errno);
+            perror("sigwait() function failed.\n");
+        }
+    }
+
+    for(i = 0; i < 10; i++ ) {
+        fprintf(stderr, "Process: %d, PID: %d\n", i+1, getpid());
+    }
+
+    if(kill(child_pid, SIGUSR1) < 0) {
+        perror("Failed to kill child");
+    }
+
+    wait(child_pid);
 }
