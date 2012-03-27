@@ -9,14 +9,13 @@ void CreateThreadsWithSleep();
 int global = 0;
 
 CRITICAL_SECTION csl;
-HANDLE mReady;
 
 int main() {
     int i;
     int param = 0;
     DWORD *tid;
     HANDLE *tid_handle;
-    
+
     InitializeCriticalSection(&csl);
 
     tid = malloc(sizeof(DWORD) * 10);
@@ -44,20 +43,22 @@ int main() {
 DWORD WINAPI AddToGlobal(LPVOID param) {
     int local;
 
+    /* Start the critical section. */
     EnterCriticalSection(&csl);
 
     fprintf(stderr, "Hello, I'm thread %u.\n", (unsigned int)GetCurrentThreadId());
-    Sleep(1000);
+    /* Sleep(1000); */
     local = global;
 
     fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)GetCurrentThreadId());
-    Sleep(1000);
+    /* Sleep(1000); */
     local += 10;
 
     fprintf(stderr, "Local: %d, TID: %u\n", local, (unsigned int)GetCurrentThreadId());
     global = local;
-    Sleep(1000);
+    /* Sleep(1000); */
 
+    /* End the critical section. Remove this line to cause deadlock. */
     LeaveCriticalSection(&csl);
 
     return 0;
