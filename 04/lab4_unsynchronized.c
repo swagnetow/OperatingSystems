@@ -1,5 +1,4 @@
 #include <pthread.h>
-#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,9 +13,6 @@ int p_time; /* # of cycles to spin-wait between each call to enqueue. */
 int c_time; /* # of cycles to spin-wait between each call to dequeue. */
 int size; /* Size of the queue. */
 int* queue; /* Queue to hold values. */
-pthread_mutex_t lock; /* Mutex semaphore. */
-sem_t empty; /* Count semaphore decrement. */
-sem_t full; /* Count semaphore increment. */
 
 void producer();
 void consumer();
@@ -36,10 +32,6 @@ int main(int argc, char** argv) {
     queue = malloc(n * sizeof(int));
     pthread_t producers[p];
     pthread_t consumers[c];
-
-    sem_init(&empty, 0, n);
-    sem_init(&full, 0, 0);
-    pthread_mutex_init(&lock, NULL);
 
     begin = time(NULL);
 
@@ -71,9 +63,6 @@ int main(int argc, char** argv) {
 
     /* Memory deallocation. */
     free(queue);
-    pthread_mutex_destroy(&lock);
-    sem_destroy(&full);
-    sem_destroy(&empty);
 
     return 0;
 }
@@ -84,10 +73,6 @@ void producer() {
     fprintf(stderr, "producer:> begin\n");
 
     do {
-        /* P() */
-        sem_wait(&empty);
-        pthread_mutex_lock(&lock);
-
         /* Induce race conditions. */
         sleep(1);
 
@@ -96,15 +81,11 @@ void producer() {
             if(n > size) {
                 size += 1;
                 queue[size-1] = rand();
-                fprintf(stderr, "producer:> enqueue queue[%d] = %d\n", size, queue[size-1]);
+                printf("producer:> enqueue queue[%d] = %d\n", size, queue[size-1]);
             }
         }
 
-        fprintf(stderr, "producer:> size = %d\n", size);
-
-        /* V() */
-        pthread_mutex_unlock(&lock);
-        sem_post(&full);
+        printf("producer:> size = %d\n", size);
 
         sleep(p_time);
     } while(n > size);
@@ -118,26 +99,18 @@ void consumer() {
     fprintf(stderr, "consumer:> begin\n");
 
     do {
-        /* P() */
-        sem_wait(&full);
-        pthread_mutex_lock(&lock);
-
         /* Induce race conditions. */
         sleep(1);
 
         /* Shrink queue. */
         for(i = 0; i < (int)p*(x/c); i++) {
             if(size > 0) {
-                fprintf(stderr, "consumer:> dequeue queue[%d] = %d\n", size, queue[size-1]);
+                printf("consumer:> dequeue queue[%d] = %d\n", size, queue[size-1]);
                 size -= 1;
             }
         }
 
-        fprintf(stderr, "consumer:> size = %d\n", size);
-
-        /* V() */
-        pthread_mutex_unlock(&lock);
-        sem_post(&empty);
+        printf("consumer:> size = %d\n", size);
 
         sleep(c_time);
     } while(size > 0);

@@ -11,8 +11,8 @@ int c_time; /* # of cycles to spin-wait between each call to dequeue. */
 int size; /* Size of the queue. */
 int* queue; /* Queue to hold values. */
 HANDLE lock; /* Mutex semaphore. */
-HANDLE empty; /* Count semaphore decrement. */
-HANDLE full; /* Count semaphore increment. */
+HANDLE empty; /* Count semaphore increment. */
+HANDLE full; /* Count semaphore decrement. */
 
 DWORD WINAPI producer();
 DWORD WINAPI consumer();
@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
 
     begin = time(NULL);
 
-    /* Beginning timestamp. */
     printf("%s\n", asctime(localtime(&begin)));
 
     /* Create threads. */
@@ -66,17 +65,16 @@ int main(int argc, char** argv) {
     end = time(NULL);
     elapsed = end - begin;
 
-    /* Ending timestamp. */
     printf("\n%s", asctime(localtime(&end)));
     printf("Time elapsed: %d seconds.\n", elapsed);
 
     /* Memory deallocation. */
-    CloseHandle(empty);
-    CloseHandle(full);
-    CloseHandle(lock);
     free(queue);
     free(producers);
     free(consumers);
+    CloseHandle(full);
+    CloseHandle(empty);
+    CloseHandle(lock);
 
     return 0;
 }
@@ -91,8 +89,8 @@ DWORD WINAPI producer() {
         WaitForSingleObject(empty, 0);
         WaitForSingleObject(lock, INFINITE);
 
-        /* Induce race conditions. */
-        Sleep(1);
+        /* Induce race condition. */
+        Sleep(1)
 
         /* Grow queue. */
         for(i = 0; i < p; i++) {
@@ -127,13 +125,13 @@ DWORD WINAPI consumer() {
         WaitForSingleObject(full, 0);
         WaitForSingleObject(lock, INFINITE);
 
-        /* Induce race conditions. */
-        Sleep(1);
+        /* Induce race condition. */
+        Sleep(1)
 
         /* Shrink queue. */
         for(i = 0; i < (int)p*(x/c); i++) {
             if(size > 0) {
-                printf("consumer:> dequeue queue[%d] = %d\n", size-1, queue[size-1]);
+                printf("consumer:> dequeue queue[%d] = %d\n", size, queue[size-1]);
                 size -= 1;
             }
         }
