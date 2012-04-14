@@ -10,9 +10,6 @@ int p_time; /* # of cycles to spin-wait between each call to enqueue. */
 int c_time; /* # of cycles to spin-wait between each call to dequeue. */
 int size; /* Size of the queue. */
 int* queue; /* Queue to hold values. */
-HANDLE lock; /* Mutex semaphore. */
-HANDLE empty; /* Count semaphore increment. */
-HANDLE full; /* Count semaphore decrement. */
 
 DWORD WINAPI producer();
 DWORD WINAPI consumer();
@@ -32,9 +29,6 @@ int main(int argc, char** argv) {
     c_time = atoi(argv[6]);
     size = 0;
     queue = malloc(n * sizeof(int));
-    empty = CreateSemaphore(NULL, 0, 0, NULL);
-    full = CreateSemaphore(NULL, size, size, NULL);
-    lock = CreateMutex(NULL, FALSE, NULL);
     producers = malloc(p * sizeof(HANDLE));
     consumers = malloc(c * sizeof(HANDLE));
 
@@ -85,10 +79,6 @@ DWORD WINAPI producer() {
     printf("producer:> begin\n");
 
     do {
-        /* P() */
-        WaitForSingleObject(empty, 0);
-        WaitForSingleObject(lock, INFINITE);
-
         /* Induce race condition. */
         Sleep(1)
 
@@ -102,10 +92,6 @@ DWORD WINAPI producer() {
         }
 
         printf("producer:> size = %d\n", size);
-
-        /* V() */
-        ReleaseMutex(lock);
-        ReleaseSemaphore(full);
 
         Sleep(p_time);
     } while(n > size);
@@ -121,10 +107,6 @@ DWORD WINAPI consumer() {
     printf("consumer:> begin\n");
 
     do {
-        /* P() */
-        WaitForSingleObject(full, 0);
-        WaitForSingleObject(lock, INFINITE);
-
         /* Induce race condition. */
         Sleep(1)
 
@@ -137,10 +119,6 @@ DWORD WINAPI consumer() {
         }
 
         printf("consumer:> size = %d\n", size);
-
-        /* V() */
-        ReleaseMutex(lock);
-        ReleaseSemaphore(empty);
 
         Sleep(c_time);
     } while(size > 0);
