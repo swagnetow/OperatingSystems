@@ -16,12 +16,10 @@ struct Page {
 
 void fifo(int*, int);
 int frame_exists(int*, int);
-/*
 void lru(struct Page *, int, int);
 void opt(int*, int);
 int frame_exists_lru(struct Page *, int, int);
 int lru_lookup(struct Page *);
-*/
 
 int main() {
     int i;
@@ -48,7 +46,6 @@ int main() {
 
     printf("FIFO page faults: %d\n", fifo_page_faults);
 
-    /*
     for(i = 0; i < FRAME_SIZE; i++) {
         page_frames_lru[i].index = -1;
         page_frames_lru[i].reference = -1;
@@ -59,7 +56,6 @@ int main() {
     }
 
     printf("LRU page faults: %d\n", lru_page_faults);
-    */
 
     return 0;
 }
@@ -87,7 +83,6 @@ int frame_exists(int* page_frames, int page_number) {
     return 0;
 }
 
-/*
 void lru(struct Page *page_frames_lru, int page_reference, int index) {
     int current_index;
     int current_page_reference;
@@ -131,4 +126,3 @@ int lru_lookup(struct Page *page_frames_lru) {
 
 void opt(int* page_frames, int page_number) {
 }
-*/
