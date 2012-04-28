@@ -107,7 +107,7 @@ DWORD WINAPI producer() {
 
         /* V() */
         ReleaseMutex(lock);
-        ReleaseSemaphore(full);
+        ReleaseSemaphore(full, p, NULL);
 
         Sleep(p_time);
     } while(n > size);
@@ -142,7 +142,7 @@ DWORD WINAPI consumer() {
 
         /* V() */
         ReleaseMutex(lock);
-        ReleaseSemaphore(empty);
+        ReleaseSemaphore(empty, (int)p*(x/c), NULL);
 
         Sleep(c_time);
     } while(size > 0);
