@@ -14,28 +14,27 @@ int* array;
 DWORD WINAPI SequentialSearch(LPVOID);
 
 int main(int argc, char** argv) {
+    float time_elapsed;
     int i;
     int partition_size;
     int return_value;
     int search_key_counter;
-    long seconds;
-    long milliseconds;
-    long time_elapsed;
-    struct timeval start;
-    struct timeval end;
+    SYSTEMTIME start;
+    SYSTEMTIME end;
     DWORD *tid;
     HANDLE *tid_handle;
     array_size = (int) pow(2, atoi(argv[1]));
     array = malloc(sizeof(int) * array_size);
     partitions = (int) pow(2, atoi(argv[2]));
     partition_size = (array_size/partitions);
-    tid = malloc(sizeof(DWORD) * partitions);
-    tid_handle = malloc(sizeof(DWORD) * partitions);
+    tid = (DWORD*)malloc(sizeof(DWORD) * partitions);
+    tid_handle = (HANDLE*)malloc(sizeof(DWORD) * partitions);
 
     /* Start timing the search. */
+    GetLocalTime(&start);
 
     /* Entropy for RNG. */
-    srand(time(0));
+    srand(time(NULL));
 
     /* Search key will be a random number between 0-2^n */
     search_key = rand() % array_size;
@@ -49,13 +48,12 @@ int main(int argc, char** argv) {
 
     for(i = 0; i < partitions; i++) {
         /* Array to pass the start and end indicies for splitting up the array into partitions. */
-        int *param = malloc(sizeof(int) * 2);
-
+        int *param = (int*)malloc(sizeof(int) * 2);
         param[0] = element;
         element += partition_size;
         param[1] = element;
 
-        tid_handle[i] = CreateThread(NULL, 0, SequentialSearch, &param, 0, &tid[i]);
+        tid_handle[i] = CreateThread(NULL, 0, SequentialSearch, &param[0], 0, &tid[i]);
     }
 
     for(i = 0; i < partitions; i++) {
@@ -64,6 +62,7 @@ int main(int argc, char** argv) {
     }
 
     /* End timing of the search. */
+    GetLocalTime(&end);
 
     /* Final check for the search key within the array. */
     for(i = 0; i < array_size; i++) {
@@ -81,7 +80,9 @@ int main(int argc, char** argv) {
         printf("The search key was not found!\n\n");
     }
 
-    printf("Time elapsed: %ld ms\n", time_elapsed);
+    time_elapsed = (end.wMilliseconds - start.wMilliseconds);
+
+    printf("Time elapsed: %f ms\n", time_elapsed);
 
     /* Deallocate memory. */
     free(array);
@@ -92,10 +93,13 @@ int main(int argc, char** argv) {
 }
 
 DWORD WINAPI SequentialSearch(LPVOID param) {
-    int* search_args = (int*)param;
-    int start = search_args[0];
-    int end = search_args[1];
     int i;
+    int start;
+    int end;
+    int *search_args = (int*)malloc(sizeof(int)*2);
+    search_args = (int*)param;
+    start = search_args[0];
+    end = search_args[1];
 
     /* Search the array sequentially in O(n) time from the split partition of the array. */
     for(i = start; i < end; i++) {
